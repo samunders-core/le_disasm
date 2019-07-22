@@ -63,7 +63,7 @@ struct Header {
             uint8_t byte;
             read_le(is, byte);
             if (byte < 0x40) {
-            	throw Error() << "Not a LE executable";
+            	throw Error() << "Not a LE executable, at offset 0x18: expected 0x40 or more, got 0x" << std::hex << byte;
             }
             is.seekg(0x3c);
             read_le(is, header_offset);
