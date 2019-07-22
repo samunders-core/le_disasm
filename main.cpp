@@ -1,4 +1,6 @@
 #include <fstream>
+#include <cstring>
+#define PACKAGE
 
 #include "print.h"
 
