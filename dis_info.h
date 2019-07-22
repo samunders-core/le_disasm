@@ -3,6 +3,8 @@
 
 #include <dis-asm.h>
 
+extern "C" int print_insn_i386_att (bfd_vma pc, disassemble_info *info);
+
 #include "insn.h"
 
 class DisInfo : disassemble_info {
