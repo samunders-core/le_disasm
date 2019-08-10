@@ -37,13 +37,15 @@ struct LinearExecutable {
     
     void loadObjectFixups(std::istream &is, std::vector<uint32_t> &fixup_record_offsets, size_t table_offset, size_t oi) {
         ObjectHeader &obj = objects[oi];
-        std::cerr << "Loading fixups for object " << oi << std::endl;
+        /* print object indices starting from 1 as defined by LE format */
+        std::cerr << "Loading fixups for object " << oi + 1 << std::endl;
         for (size_t n = obj.first_page_index; n < obj.first_page_index + obj.page_count; ++n) {
             size_t offset = table_offset + fixup_record_offsets[n];
-            size_t end = offset + fixup_record_offsets[n + 1] - fixup_record_offsets[n];
+            size_t end = table_offset + fixup_record_offsets[n + 1];
             size_t page_offset = (n - obj.first_page_index) * header.page_size;
             for (is.seekg(offset); offset < end; ) {
-            	std::cerr << "Loading fixup 0x" << offset << " at page " << std::dec << n << "/" << obj.page_count << ", offset 0x" << std::hex << page_offset << ": ";
+            	std::cerr << "Loading fixup 0x" << offset << " at page " << std::dec << (n + 1 - obj.first_page_index)
+            			<< "/" << obj.page_count << ", offset 0x" << std::hex << page_offset << ": ";
                 Fixup fixup(is, offset, objects, page_offset);
                 fixups[oi][fixup.offset] = fixup.address;
                 fixup_addresses.insert(fixup.address);
@@ -68,7 +70,7 @@ struct LinearExecutable {
         
         std::vector<uint32_t> fixup_record_offsets;
         is.seekg(header_offset + header.fixup_page_table_offset);
-        fixup_record_offsets.resize(header.page_count + 1);
+        fixup_record_offsets.resize(header.page_count + 1); /* The additional +1 record indicates the end of the Fixup Record Table */
         for (size_t n = 0; n <= header.page_count; ++n) {
             read_le(is, fixup_record_offsets[n]);
         }

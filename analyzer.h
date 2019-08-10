@@ -97,7 +97,13 @@ struct Analyzer {
 				}
 				if (strstr(inst.text, "nop") == inst.text) {
 					++nopCount;
-				} else if (DATA != type && *inst.text == 'f' && inst.memoryAddress > 0) {	// any FPU instruction-referenced fixup has to be data
+
+					/* Any FPU instruction-referenced fixup has to be data.
+					 *
+					 * Note that the FS segment override instruction prefix byte may be applied to disassembled instructions.
+					 * E.g. 0x647Fxx converts to FS JG rel8, which should not be misinterpreted as an FPU instruction.
+					 */
+				} else if (DATA != type && *inst.text == 'f' && inst.memoryAddress > 0 && strncmp(inst.text, "fs ", strlen("fs ")) != 0) {
 					Region *reg = regions.regionContaining(inst.memoryAddress);
 					if (reg == NULL) {
 						continue;
