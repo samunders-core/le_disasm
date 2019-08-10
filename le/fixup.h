@@ -51,18 +51,22 @@ class Fixup {
 	}
 
 	static uint32_t readDestOffset(std::istream &is, size_t &offset, std::vector<ObjectHeader> objects, uint32_t page_offset, uint8_t addr_flags, uint8_t reloc_flags) {
+		if ((reloc_flags & 0x40) != 0) {/* 16-bit Object Number/Module Ordinal Flag */
+			throw Error() << "16-bit object or module ordinal numbers are not supported";
+		}
+
 		uint8_t obj_index = throwOnInvalidObjectIndex(is, objects, page_offset);
 		++offset;
 
 		uint32_t dst_off_32;
 		if ((reloc_flags & 0x10) != 0) {/* 32-bit offset */
 			read_le(is, dst_off_32);
-			offset += 4;
+			offset += sizeof(dst_off_32);
 		} else if ((addr_flags & 0xf) != 0x2) {/* 16-bit offset */
 			uint16_t dst_off_16;
 			read_le(is, dst_off_16);
 			dst_off_32 = dst_off_16;
-			offset += 2;
+			offset += sizeof(dst_off_16);
 		} else {
 			return obj_index + 1;
 		}
