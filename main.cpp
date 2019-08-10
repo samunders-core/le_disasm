@@ -11,6 +11,11 @@ int main(int argc, char **argv) {
 	}
 	try {
 		std::ifstream is(argv[1]);
+		if(!is.is_open()) {
+			std::cerr << "Error opening file: " << argv[1];
+			return 1;
+		}
+
 		LinearExecutable lx(is);
 		Image image(is, lx);
 		Analyzer analyzer(lx, image);
