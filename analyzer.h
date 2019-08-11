@@ -66,7 +66,7 @@ struct Analyzer {
 		}
 
 		Type type = CODE;
-		int nopCount = 0;
+		uint32_t nopCount = 0;
 		uint32_t addr = traceRegionUntilAnyJump(reg, start_addr, &data.front() - obj.base_address, type, nopCount);
 		if (nopCount == (addr - start_addr)) {
 			type = DATA;
@@ -80,10 +80,10 @@ struct Analyzer {
 		regions.splitInsert(*reg, Region(start_addr, addr - start_addr, type));
 	}
 
-	size_t traceRegionUntilAnyJump(Region *&tracedReg, uint32_t &startAddress, const void *offset, Type &type, int &nopCount) {
+	size_t traceRegionUntilAnyJump(Region *&tracedReg, uint32_t &startAddress, const void *offset, Type &type, uint32_t &nopCount) {
 		uint32_t addr = startAddress;
 		for (Insn inst; addr < tracedReg->get_end_address(); ) {
-			disassemble(addr, tracedReg->get_end_address(), inst, offset + addr, type);
+			disassemble(addr, tracedReg->get_end_address(), inst, (uint8_t*) offset + addr, type);
 			for (addr += inst.size; Insn::JUMP == inst.type || Insn::RET == inst.type;) {
 				return addr;
 			}
