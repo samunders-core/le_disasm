@@ -11,6 +11,13 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 	uint32_t addr;
 	std::string addr_str;
 	std::string comment;
+	char prefix_symbol;
+
+	/* Many opcodes support displacement in indirect addressing modes.
+	 * Example: mov    %edx,-0x10(%ebp) .
+	 * Displacement constants are signed literals and should not be misinterpreted
+	 * as unsigned fixup addresses.
+	 */
 
 	n = str.find ("0x");
 	  if (n == std::string::npos)
@@ -19,6 +26,7 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 	start = 0;
 
 	do {
+		prefix_symbol = *str.substr(n - sizeof(char), sizeof(char)).c_str();
 		oss << str.substr(start, n - start);
 
 		if (n + 2 >= str.length())
@@ -33,7 +41,8 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 		addr_str = str.substr(start, n - start);
 		addr = strtol(addr_str.c_str(), NULL, 16);
 		std::map<uint32_t, Type>::const_iterator lab = anal.regions.labelTypes.find(addr);
-		if (anal.regions.labelTypes.end() != lab) {
+		if (prefix_symbol != '-' /* && prefix_symbol != '$' */
+				&& anal.regions.labelTypes.end() != lab) {
 			printTypedAddress(oss, addr, lab->second);
 		} else {
 			printAddress(oss, addr);
