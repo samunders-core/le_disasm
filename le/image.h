@@ -46,6 +46,18 @@ struct Image {
 		}
 	}
 
+	void outputFlatMemoryDump(char const * path) {
+		std::ofstream ofs(path, std::ofstream::binary);
+		if (ofs.is_open()) {
+			for (size_t oi = 0; oi < objects.size(); ++oi) {
+				ofs.seekp(objects[oi].base_address);
+				ofs.write((const char*) &objects[oi].data.front(),
+						&objects[oi].data.back() - &objects[oi].data.front());
+			}
+			ofs.close();
+		}
+	}
+
 	Image(std::istream &is, LinearExecutable &lx) {
 		std::vector<uint8_t> data;
 		objects.resize(lx.objects.size());
