@@ -155,6 +155,30 @@ static void print_region(const Region &reg, const ImageObject &obj, LinearExecut
 	if (UNKNOWN < reg.get_type() && reg.get_type() < sizeof(printMethods)/sizeof(printMethods[0])) {
 		(*printMethods[reg.get_type()])(reg, obj, lx, img, anal);
 	}
+	else {
+		/* Emit unidentified region data for reference. Hex editors like wxHexEditor
+		 * could be used to find and disassemble the rendered raw data that could
+		 * help further improve le_disasm analyzer and actual reengineering projects.
+		 */
+		std::cout << "\n\t\t/* Skipped " << std::dec << reg.size << " bytes of "
+				<< (obj.executable ? "executable " : "") << reg.type
+				<< " type data at virtual address 0x" << std::setfill('0')
+				<< std::setw(8) << std::hex << std::noshowbase
+				<< (uint32_t) reg.address << ":";
+		const uint8_t * data_pointer = obj.get_data_at(reg.address);
+		for (uint8_t index = 0; index < reg.size && data_pointer; ++index) {
+			if (index >= 16) {
+				std::cout << "\n\t\t * ...";
+				break;
+			}
+			if (index % 8 == 0) {
+				std::cout << "\n\t\t *\t";
+			}
+			std::cout << std::setfill('0') << std::setw(2) << std::hex
+					<< std::noshowbase << (uint32_t) data_pointer[index];
+		}
+		std::cout << "\n\t\t */" << std::endl;
+	}
 }
 
 static void printChangedSectionType(const Region &reg, Type &section) {
