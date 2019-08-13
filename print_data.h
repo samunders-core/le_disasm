@@ -32,7 +32,7 @@ static std::ostream &printTypedAddress(std::ostream &os, uint32_t address, Type 
 	}
 }
 
-std::ostream & printLabel(uint32_t address, Type type, char *prefix = "") {
+std::ostream & printLabel(uint32_t address, Type type, char const *prefix = "") {
 	for (int indent = getIndent(type); indent-- > 0; std::cout << '\t');
 	printTypedAddress(std::cout << prefix, address, type) << ":";
 //	TODO: if (!lab->get_name().empty()) {
