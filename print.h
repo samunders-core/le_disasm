@@ -11,6 +11,13 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 	uint32_t addr;
 	std::string addr_str;
 	std::string comment;
+	char prefix_symbol;
+
+	/* Many opcodes support displacement in indirect addressing modes.
+	 * Example: mov    %edx,-0x10(%ebp) .
+	 * Displacement constants are signed literals and should not be misinterpreted
+	 * as unsigned fixup addresses.
+	 */
 
 	n = str.find ("0x");
 	  if (n == std::string::npos)
@@ -19,6 +26,7 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 	start = 0;
 
 	do {
+		prefix_symbol = *str.substr(n - sizeof(char), sizeof(char)).c_str();
 		oss << str.substr(start, n - start);
 
 		if (n + 2 >= str.length())
@@ -33,7 +41,8 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 		addr_str = str.substr(start, n - start);
 		addr = strtol(addr_str.c_str(), NULL, 16);
 		std::map<uint32_t, Type>::const_iterator lab = anal.regions.labelTypes.find(addr);
-		if (anal.regions.labelTypes.end() != lab) {
+		if (prefix_symbol != '-' /* && prefix_symbol != '$' */
+				&& anal.regions.labelTypes.end() != lab) {
 			printTypedAddress(oss, addr, lab->second);
 		} else {
 			printAddress(oss, addr);
@@ -145,6 +154,30 @@ static void print_region(const Region &reg, const ImageObject &obj, LinearExecut
 	void (*printMethods[])(const Region &, const ImageObject &, LinearExecutable &, Image &, Analyzer &) = {NULL, printCodeTypeRegion, printDataTypeRegion, printSwitchTypeRegion};
 	if (UNKNOWN < reg.get_type() && reg.get_type() < sizeof(printMethods)/sizeof(printMethods[0])) {
 		(*printMethods[reg.get_type()])(reg, obj, lx, img, anal);
+	}
+	else {
+		/* Emit unidentified region data for reference. Hex editors like wxHexEditor
+		 * could be used to find and disassemble the rendered raw data that could
+		 * help further improve le_disasm analyzer and actual reengineering projects.
+		 */
+		std::cout << "\n\t\t/* Skipped " << std::dec << reg.size << " bytes of "
+				<< (obj.executable ? "executable " : "") << reg.type
+				<< " type data at virtual address 0x" << std::setfill('0')
+				<< std::setw(8) << std::hex << std::noshowbase
+				<< (uint32_t) reg.address << ":";
+		const uint8_t * data_pointer = obj.get_data_at(reg.address);
+		for (uint8_t index = 0; index < reg.size && data_pointer; ++index) {
+			if (index >= 16) {
+				std::cout << "\n\t\t * ...";
+				break;
+			}
+			if (index % 8 == 0) {
+				std::cout << "\n\t\t *\t";
+			}
+			std::cout << std::setfill('0') << std::setw(2) << std::hex
+					<< std::noshowbase << (uint32_t) data_pointer[index];
+		}
+		std::cout << "\n\t\t */" << std::endl;
 	}
 }
 

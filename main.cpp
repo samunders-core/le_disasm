@@ -7,6 +7,7 @@
 int main(int argc, char **argv) {
 	if (argc < 2) {
 		std::cerr << "Usage: " << argv[0] << " [main.exe]\n";
+		std::cerr << "To dump flat linear executable image to a bin file: " << argv[0] << " [main.exe] [dump.bin]\n";
 		return 1;
 	}
 	try {
@@ -18,6 +19,12 @@ int main(int argc, char **argv) {
 
 		LinearExecutable lx(is);
 		Image image(is, lx);
+
+		if(argc >= 3) {
+			std::cerr << "Dump flat linear executable image to " << argv[2] << "\n";
+			image.outputFlatMemoryDump(argv[2]);
+		}
+
 		Analyzer analyzer(lx, image);
 
 		analyzer.run(lx);
