@@ -67,7 +67,7 @@ struct Image {
 			data.resize(ohdr.virtual_size);
 			loadObjectData(is, lx, data, lx.header, ohdr);
 			applyFixups(lx.fixups[oi], data);
-			objects[oi].init(oi, ohdr.base_address, ohdr.isExecutable(), data);
+			objects[oi].init(oi, ohdr.base_address, ohdr.isExecutable(), ohdr.isDefaultObjectBitness32Bit(), data);
 		}
 	}
 };

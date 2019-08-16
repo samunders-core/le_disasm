@@ -4,15 +4,22 @@
 #include <vector>
 
 struct ImageObject {
+	enum DefaultBitness {
+		DEFAULT_BITNESS_32BIT,
+		DEFAULT_BITNESS_16BIT
+	};
+
 	size_t index;
 	uint32_t base_address;	// both available in LinearExecutable.objects
 	bool executable;
+	enum DefaultBitness bitness;
 	std::vector<uint8_t> data;
 
-	void init(size_t index_, uint32_t base_address_, bool executable_, const std::vector<uint8_t> &data_) {
+	void init(size_t index_, uint32_t base_address_, bool executable_, bool bitness_, const std::vector<uint8_t> &data_) {
 		index = index_;
 		base_address = base_address_;
 		executable = executable_;
+		bitness = bitness_ ? DEFAULT_BITNESS_32BIT : DEFAULT_BITNESS_16BIT;
 		data = data_;
 	}
 

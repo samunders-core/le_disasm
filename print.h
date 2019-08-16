@@ -98,8 +98,9 @@ static void print_instruction(Insn &inst, Image &img, LinearExecutable &lx, Anal
 }
 
 static void printCodeTypeRegion(const Region &reg, const ImageObject &obj, LinearExecutable &lx, Image &img, Analyzer &anal) {
-	DisInfo disasm;
+	DisInfo disasm(obj.bitness == ImageObject::DEFAULT_BITNESS_32BIT ? bfd_mach_i386_i386 : bfd_mach_i386_i8086);
 	Insn inst;
+
 	for (uint32_t addr = reg.get_address(); addr < reg.get_end_address();) {
 		std::map<uint32_t, Type>::iterator type = anal.regions.labelTypes.find(addr);
 		if (anal.regions.labelTypes.end() != type) {

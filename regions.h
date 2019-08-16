@@ -13,7 +13,11 @@ struct Regions {
 			ObjectHeader &ohdr = objects[n];
 			Type type = ohdr.isExecutable() ? UNKNOWN : DATA;
 			printAddress(std::cerr, ohdr.base_address, "Creating Region(0x") << ", " << std::dec << ohdr.virtual_size << ", " << type << ")" << std::endl;
-			regions[ohdr.base_address] = Region(ohdr.base_address, ohdr.virtual_size, type);
+			regions[ohdr.base_address] = Region(ohdr.base_address,
+					ohdr.virtual_size, type,
+					ohdr.isDefaultObjectBitness32Bit() ?
+							Region::DEFAULT_BITNESS_32BIT :
+							Region::DEFAULT_BITNESS_16BIT);
 			if (!ohdr.isExecutable()) {
 				labelTypes[ohdr.base_address] = type;
 			}	// else no automatic label for lowest .text address

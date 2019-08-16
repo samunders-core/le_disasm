@@ -20,6 +20,7 @@ class Insn {
 		textLength = end + 1 - text;
 		return ret;
 	}
+
 public:
 	static int callbackResetTypeAndText(void *stream, const char *fmt, ...) {
 		va_list list;
@@ -35,9 +36,15 @@ public:
 		return insn->lowerCasedSpaceTrimmed(ret, &insn->string[insn->textLength] + ret - 1);
 	}
 
-	void reset() {
+	enum AddressMode  {
+		mode_16bit,
+		mode_32bit
+	};
+
+	void reset(AddressMode mode = mode_32bit) {
 		memoryAddress = 0;
 		textLength = 0;
+		addressMode = mode;
 	}
 
 	void setSize(size_t size) {
@@ -95,13 +102,24 @@ public:
 
 		if (have_target and (type == COND_JUMP or type == JUMP or type == CALL)) {
 			uint32_t address;
-			if (size < 5) {
-				address = addr + size + read_le<int8_t>((uint8_t *) data + size - sizeof(int8_t));
-			} else {
-				address = addr + size + read_le<int32_t>((uint8_t *) data + size - sizeof(int32_t));
+
+			if(addressMode == mode_32bit) {
+				if (size < 5) {
+					address = addr + size + read_le<int8_t>((uint8_t *) data + size - sizeof(int8_t));
+				} else {
+					address = addr + size + read_le<int32_t>((uint8_t *) data + size - sizeof(int32_t));
+				}
 			}
+			else {
+				if (size < 3) {
+					address = addr + size + read_le<int8_t>((uint8_t *) data + size - sizeof(int8_t));
+				} else {
+					address = addr + size + read_le<int16_t>((uint8_t *) data + size - sizeof(int16_t));
+				}
+			}
+
 			if (memoryAddress != 0 && address != memoryAddress) {
-				throw Error() << "0x" << std::hex << memoryAddress << "discarded for 0x" << address;
+				throw Error() << "0x" << std::hex << memoryAddress << " discarded for 0x" << address;
 			}
 			memoryAddress = address;
 		} else if (memoryAddress == 0) {
@@ -116,6 +134,7 @@ public:
 		MISC, COND_JUMP, JUMP, CALL, RET
 	};
 
+	AddressMode addressMode;
 	Type type;
 	char * text;
 	size_t textLength;

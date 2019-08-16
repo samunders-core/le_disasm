@@ -55,6 +55,7 @@ struct Analyzer {
 				std::map<uint32_t, Type>::iterator label = regions.labelTypes.find(start_addr);
 				if (regions.labelTypes.end() != label && label->second == FUNC_GUESS) {
 					Insn inst;
+					disasm.setMachineType(reg->get_default_bitness() == Region::DEFAULT_BITNESS_32BIT ? bfd_mach_i386_i386 : bfd_mach_i386_i8086);
 					disasm.disassemble(start_addr, &data.front() - obj.base_address + start_addr, reg->get_end_address() - start_addr, inst);
 					label->second = (strstr(inst.text, "push") == inst.text || (strstr(inst.text, "sub") == inst.text && strstr(inst.text, ",%esp") != NULL)) ? FUNCTION : JUMP;
 				}
@@ -83,7 +84,7 @@ struct Analyzer {
 	size_t traceRegionUntilAnyJump(Region *&tracedReg, uint32_t &startAddress, const void *offset, Type &type, uint32_t &nopCount) {
 		uint32_t addr = startAddress;
 		for (Insn inst; addr < tracedReg->get_end_address(); ) {
-			disassemble(addr, tracedReg->get_end_address(), inst, (uint8_t*) offset + addr, type);
+			disassemble(addr, tracedReg, inst, (uint8_t*) offset + addr, type);
 			for (addr += inst.size; Insn::JUMP == inst.type || Insn::RET == inst.type;) {
 				return addr;
 			}
@@ -138,7 +139,10 @@ struct Analyzer {
 		return addr;
 	}
 
-	void disassemble(uint32_t addr, uint32_t end_addr, Insn &inst, const void *data_ptr, Type type) {
+	void disassemble(uint32_t addr, Region *&tracedReg, Insn &inst, const void *data_ptr, Type type) {
+		uint32_t end_addr = tracedReg->get_end_address();
+
+		disasm.setMachineType(tracedReg->get_default_bitness() == Region::DEFAULT_BITNESS_32BIT ? bfd_mach_i386_i386 : bfd_mach_i386_i8086);
 		for (disasm.disassemble(addr, data_ptr, end_addr - addr, inst); inst.memoryAddress == 0 || DATA == type; ) {
 			return;
 		}

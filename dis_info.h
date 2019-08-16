@@ -13,9 +13,9 @@ class DisInfo : disassemble_info {
 		((Insn *) info->stream)->memoryAddress = address;
 	}
 public:
-	DisInfo() {
+	DisInfo(unsigned long machine = bfd_mach_i386_i386) {
 		init_disassemble_info(this, NULL, &Insn::callbackResetTypeAndText);
-		mach = bfd_mach_i386_i386;
+		mach = machine;
 		print_address_func = callbackPrintAddress;
 	}
 
@@ -24,7 +24,9 @@ public:
 		buffer_length = length;
 		buffer_vma = addr;
 		stream = &insn;
-		insn.reset();
+
+		insn.reset(mach == bfd_mach_i386_i8086 ? Insn::mode_16bit : Insn::mode_32bit);
+
 		int size = print_insn_i386_att(addr, this);
 		if (size < 0) {	// FIXME: dump arguments to error
 			throw Error() << "Failed to disassemble instruction";
@@ -33,6 +35,14 @@ public:
 		if (size > 0) {
 			insn.setTargetAndType(addr, data);
 		}
+	}
+
+	void setMachineType(unsigned long machine) {
+		if(machine != bfd_mach_i386_i386 && machine != bfd_mach_i386_i8086) {
+			throw Error() << "Only 16-bit or 32-bit x86 machine types are supported";
+		}
+
+		mach = machine;
 	}
 };
 

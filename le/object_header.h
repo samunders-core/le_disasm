@@ -8,14 +8,17 @@
 struct ObjectHeader {
 
     enum {
-        READABLE = 1 << 0,
-        WRITABLE = 1 << 1,
-        EXECUTABLE = 1 << 2,
-        RESOURCE = 1 << 3,
-        DISCARDABLE = 1 << 4,
-        SHARED = 1 << 5,
-        PRELOADED = 1 << 6,
-        INVALID = 1 << 7
+        READABLE = 1 << 0, /* 0001h = Readable Object */
+        WRITABLE = 1 << 1, /* 0002h = Writable Object */
+        EXECUTABLE = 1 << 2, /* 0004h = Executable Object */
+        RESOURCE = 1 << 3, /* 0008h = Resource Object */
+        DISCARDABLE = 1 << 4, /* 0010h = Discardable Object */
+        SHARED = 1 << 5, /* 0020h = Object is Shared */
+        PRELOADED = 1 << 6, /* 0040h = Object has Preload Pages */
+        INVALID = 1 << 7, /* 0080h = Object has Invalid Pages */
+		ZERO_FILL = 1 << 8, /* 0100h = Object has Zero Filled Pages */
+		ALIAS_REQUIRED = 1 << 12, /* 1000h = 16:16 Alias Required */
+		BIG_DEFAULT = 1 << 13 /* 2000h = Big/Default Bit Setting */
     };
 
     uint32_t virtual_size; /* 00h */
@@ -37,6 +40,10 @@ struct ObjectHeader {
 
     bool isExecutable() const {
     	return (flags & EXECUTABLE) != 0;
+    }
+
+    bool isDefaultObjectBitness32Bit() const {
+    	return  (flags & BIG_DEFAULT) != 0;
     }
 };
 

@@ -4,16 +4,23 @@
 #include "type.h"
 
 struct Region {
-	Region(uint32_t address_, uint32_t size_, Type type_) {
+	enum DefaultBitness {
+		DEFAULT_BITNESS_32BIT,
+		DEFAULT_BITNESS_16BIT
+	};
+
+	Region(uint32_t address_, uint32_t size_, Type type_, DefaultBitness bitness_ = DEFAULT_BITNESS_32BIT) {
 		address = address_;
 		size = size_;
 		type = type_;
+		bitness = bitness_;
 	}
 
 	Region(void) {
 		this->address = 0;
 		this->size = 0;
 		this->type = UNKNOWN;
+		this->bitness = DEFAULT_BITNESS_32BIT;
 	}
 
 	Region(const Region &other) {
@@ -40,9 +47,14 @@ struct Region {
 		return this->size;
 	}
 
+	DefaultBitness get_default_bitness(void) const {
+		return this->bitness;
+	}
+
 	uint32_t address;
 	uint32_t size;
 	Type type;
+	DefaultBitness bitness;
 };
 
 std::ostream &operator<<(std::ostream &os, Type type) {
