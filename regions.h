@@ -45,7 +45,7 @@ struct Regions {
 		assert(parent.contains_address(reg.get_end_address() - 1));
 
 		FlagsRestorer _(std::cerr);
-		Region next(reg.get_end_address(), parent.get_end_address() - reg.get_end_address(), parent.get_type());
+		Region next(reg.get_end_address(), parent.get_end_address() - reg.get_end_address(), parent.get_type(), parent.get_default_bitness());
 		std::cerr << parent << " split to ";
 
 		if (reg.get_address() != parent.get_address()) {
@@ -86,7 +86,10 @@ private:
 	}
 
 	Region *attemptMerge(Region *prev, Region *next) {
-		if (prev != NULL and next != NULL && prev->get_type() == next->get_type() and prev->get_end_address() == next->get_address()) {
+		if (prev != NULL and next != NULL
+				and prev->get_type() == next->get_type()
+				and prev->get_end_address() == next->get_address()
+				and prev->get_default_bitness() == next->get_default_bitness()) {
 			std::cerr << "Combining " << *prev << " and " << *next << std::endl;
 			prev->size += next->size;
 			regions.erase(next->get_address());

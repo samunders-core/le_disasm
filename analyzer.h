@@ -78,7 +78,11 @@ struct Analyzer {
 				label->second = DATA;
 			}
 		}
-		regions.splitInsert(*reg, Region(start_addr, addr - start_addr, type));
+		regions.splitInsert(*reg,
+				Region(start_addr, addr - start_addr, type,
+						obj.bitness == ImageObject::DEFAULT_BITNESS_32BIT ?
+								Region::DEFAULT_BITNESS_32BIT :
+								Region::DEFAULT_BITNESS_16BIT));
 	}
 
 	size_t traceRegionUntilAnyJump(Region *&tracedReg, uint32_t &startAddress, const void *offset, Type &type, uint32_t &nopCount) {
@@ -109,10 +113,18 @@ struct Analyzer {
 					if (reg == NULL) {
 						continue;
 					} else if (reg->get_type() == UNKNOWN) {
+						const ImageObject &obj = image.objectAt(inst.memoryAddress);
+
 						if (strstr(inst.text, "t ") != NULL) {
-							regions.splitInsert(*reg, Region(inst.memoryAddress, 10, DATA));
+							regions.splitInsert(*reg, Region(inst.memoryAddress, 10, DATA,
+									obj.bitness == ImageObject::DEFAULT_BITNESS_32BIT ?
+											Region::DEFAULT_BITNESS_32BIT :
+											Region::DEFAULT_BITNESS_16BIT));
 						} else if (strstr(inst.text, "l ") != NULL) {
-							regions.splitInsert(*reg, Region(inst.memoryAddress, 8, DATA));
+							regions.splitInsert(*reg, Region(inst.memoryAddress, 8, DATA,
+									obj.bitness == ImageObject::DEFAULT_BITNESS_32BIT ?
+											Region::DEFAULT_BITNESS_32BIT :
+											Region::DEFAULT_BITNESS_16BIT));
 						} else {
 							throw Error() << "0x" << std::hex << addr - inst.size << ": unsupported FPU operand size in " << inst.text;
 						}
@@ -179,7 +191,11 @@ struct Analyzer {
 		}
 		size_t count = addSwitchAddresses(fixups, size, obj.get_data_at(address), address - obj.base_address);
 		if (count > 0) {
-			regions.splitInsert(reg, Region(address, 4 * count, SWITCH));
+			const ImageObject &obj2 = image.objectAt(address);
+			regions.splitInsert(reg, Region(address, 4 * count, SWITCH,
+					obj2.bitness == ImageObject::DEFAULT_BITNESS_32BIT ?
+							Region::DEFAULT_BITNESS_32BIT :
+							Region::DEFAULT_BITNESS_16BIT));
 			regions.labelTypes[address] = SWITCH;
 			trace_code();	// TODO: is returning not enough?
 		}

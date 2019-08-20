@@ -182,8 +182,18 @@ static void print_region(const Region &reg, const ImageObject &obj, LinearExecut
 	}
 }
 
-static void printChangedSectionType(const Region &reg, Type &section) {
+static void printChangedSectionType(const Region &reg, const Region * const reg_prev, Type &section) {
 	char sections[][6] = { "bug", ".text", ".data" };
+
+	if (reg_prev
+			and reg_prev->get_default_bitness() != reg.get_default_bitness()) {
+		if (reg.get_default_bitness() == Region::DEFAULT_BITNESS_32BIT) {
+			std::cout << std::endl << ".code32" << std::endl;
+		} else {
+			std::cout << std::endl << ".code16" << std::endl;
+		}
+	}
+
 	if (reg.get_type() == DATA) {
 		if (section != DATA) {
 			std::cout << std::endl << sections[section = DATA] << std::endl;
@@ -204,17 +214,22 @@ void print_code(LinearExecutable &lx, Image &img, Analyzer &anal) {
 
 	std::cerr << "Region count: " << regions.regions.size() << std::endl;
 
-	std::cout << ".code32" << std::endl;
+	const ImageObject &obj = img.objectAt(lx.entryPointAddress());
+	if(obj.bitness == ImageObject::DEFAULT_BITNESS_32BIT){
+		std::cout << ".code32" << std::endl;
+	} else {
+		std::cout << ".code16" << std::endl;
+	}
 	std::cout << ".text" << std::endl;
-	std::cout << ".globl main" << std::endl;
-	std::cout << "main:" << std::endl;
+	std::cout << ".globl _start" << std::endl;
+	std::cout << "_start:" << std::endl;
 	printTypedAddress(std::cout << "\t\tjmp\t", lx.entryPointAddress(), FUNCTION) << std::endl;
 
 	for (std::map<uint32_t, Region>::const_iterator itr = regions.regions.begin(); itr != regions.regions.end(); ++itr) {
 		const Region &reg = itr->second;
 		const ImageObject &obj = img.objectAt(reg.get_address());
 
-		printChangedSectionType(reg, section);
+		printChangedSectionType(reg, prev, section);
 
 		print_region(reg, obj, lx, img, anal);
 
