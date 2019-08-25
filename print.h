@@ -5,13 +5,14 @@
 #include "le/image.h"
 #include "print_data.h"
 
-static std::string replace_addresses_with_labels(const std::string &str, Image &img, LinearExecutable &lx, Analyzer &anal) {
+static std::string replace_addresses_with_labels(Insn &inst, Image &img, LinearExecutable &lx, Analyzer &anal) {
 	std::ostringstream oss;
 	size_t n, start;
 	uint32_t addr;
 	std::string addr_str;
 	std::string comment;
 	char prefix_symbol;
+	const std::string &str = inst.text;
 
 	/* Many opcodes support displacement in indirect addressing modes.
 	 * Example: mov    %edx,-0x10(%ebp) .
@@ -40,6 +41,16 @@ static std::string replace_addresses_with_labels(const std::string &str, Image &
 
 		addr_str = str.substr(start, n - start);
 		addr = strtol(addr_str.c_str(), NULL, 16);
+		if (inst.addressMode == Insn::mode_16bit and inst.memoryAddress == addr
+				and inst.type == Insn::MISC) {
+			const ImageObject &obj = img.objectAt(inst.instructionAddress);
+			/* assume that ds and cs equal segment base in 16 bit mode */
+			uint32_t virtual_address = obj.base_address + inst.memoryAddress;
+			Region *reg = anal.regions.regionContaining(virtual_address);
+			if (reg and reg->type == DATA) {
+				//addr = virtual_address; GCC throws "relocation truncated to fit: R_386_16 against .data" error.
+			}
+		}
 		std::map<uint32_t, Type>::const_iterator lab = anal.regions.labelTypes.find(addr);
 		if (prefix_symbol != '-' /* && prefix_symbol != '$' */
 				&& anal.regions.labelTypes.end() != lab) {
@@ -70,7 +81,7 @@ static void print_instruction(Insn &inst, Image &img, LinearExecutable &lx, Anal
 	std::string str;
 	std::string::size_type n;
 
-	str = replace_addresses_with_labels(inst.text, img, lx, anal);
+	str = replace_addresses_with_labels(inst, img, lx, anal);
 
 	n = str.find("(287 only)");
 	if (n != std::string::npos) {

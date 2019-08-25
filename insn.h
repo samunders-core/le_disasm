@@ -45,6 +45,7 @@ public:
 		memoryAddress = 0;
 		textLength = 0;
 		addressMode = mode;
+		instructionAddress = 0;
 	}
 
 	void setSize(size_t size) {
@@ -55,7 +56,9 @@ public:
 		bool have_target = true;
 		uint8_t data0 = ((uint8_t *) data)[0], data1 = 0;
 
-		if (data0 == 0x2e) {
+		this->instructionAddress = addr;
+
+		if (data0 == 0x2e) {/* CS segment override prefix */
 			if (size > 1) {
 				data0 = ((uint8_t *) data)[1];
 			}
@@ -140,6 +143,7 @@ public:
 	size_t textLength;
 	/** jump/call target or memory operand */
 	uint32_t memoryAddress;
+	uint32_t instructionAddress;
 	size_t size;
 };
 

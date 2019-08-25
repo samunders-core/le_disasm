@@ -145,6 +145,14 @@ struct Analyzer {
 							regions.labelTypes[startAddress] = FUNCTION;	// eases further script-based transformation
 						}
 					}
+				} else if (inst.addressMode == Insn::mode_16bit and inst.memoryAddress > 0) {
+					const ImageObject &obj = image.objectAt(addr);
+					/* assume that ds and cs equal segment base in 16 bit mode */
+					uint32_t virtual_address = obj.base_address + inst.memoryAddress;
+					Region *reg = regions.regionContaining(virtual_address);
+					if (reg and reg->type == DATA) {
+						regions.labelTypes[virtual_address] = DATA;
+					}
 				}
 			}
 		}
@@ -192,7 +200,7 @@ struct Analyzer {
 		size_t count = addSwitchAddresses(fixups, size, obj.get_data_at(address), address - obj.base_address);
 		if (count > 0) {
 			const ImageObject &obj2 = image.objectAt(address);
-			regions.splitInsert(reg, Region(address, 4 * count, SWITCH,
+			regions.splitInsert(reg, Region(address, sizeof(uint32_t) * count, SWITCH,
 					obj2.bitness == ImageObject::DEFAULT_BITNESS_32BIT ?
 							Region::DEFAULT_BITNESS_32BIT :
 							Region::DEFAULT_BITNESS_16BIT));
