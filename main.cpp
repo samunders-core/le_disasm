@@ -3,6 +3,7 @@
 #define PACKAGE
 
 #include "print.h"
+#include "symbol_map.h"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -11,6 +12,8 @@ int main(int argc, char **argv) {
         return 1;
     }
     try {
+        SymbolMap *map_ptr = 0;
+
         std::ifstream is(argv[1]);
         if (!is.is_open()) {
             std::cerr << "Error opening file: " << argv[1];
@@ -25,10 +28,18 @@ int main(int argc, char **argv) {
             image.outputFlatMemoryDump(argv[2]);
         }
 
+        if (argc >= 4) {
+            map_ptr = new SymbolMap(argv[3]);
+        }
+
         Analyzer analyzer(lx, image);
 
-        analyzer.run(lx);
+        analyzer.run(lx, map_ptr);
         print_code(lx, image, analyzer);
+
+        if (map_ptr) {
+            delete map_ptr;
+        }
     } catch (const std::exception &e) {
         std::cerr << std::dec << e.what() << std::endl;
     }

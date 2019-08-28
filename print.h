@@ -84,6 +84,12 @@ static void print_instruction(Insn &inst, Image &img, LinearExecutable &lx, Anal
         return;
     }
 
+	n = str.find("(8087 only)");
+	if (n != std::string::npos) {
+		std::cout << "\t\t/* " << str << " -- ignored */\n";
+		return;
+	}
+
     /* Work around buggy libopcodes */
     if (str == "lar    %cx,%ecx") {
         str = "lar    %ecx,%ecx";
@@ -150,7 +156,9 @@ static void printSwitchTypeRegion(const Region &reg, const ImageObject &obj, Lin
 
         if (func_addr != 0) {
             if (addr < func_addr) {
-                anal.regions.labelTypes[func_addr] = CASE;
+				if (anal.regions.labelTypes.end() == anal.regions.labelTypes.find(func_addr)) {
+					anal.regions.labelTypes[func_addr] = CASE;
+				}
             }
             printTypedAddress(std::cout << "\t\t.long   ", func_addr, anal.regions.labelTypes[func_addr]) << std::endl;
         } else {

@@ -14,6 +14,7 @@
 #include "le/image.h"
 #include "le/lin_ex.h"
 #include "regions.h"
+#include "symbol_map.h"
 
 struct Analyzer {
     Regions regions;
@@ -65,6 +66,9 @@ struct Analyzer {
         } else if (regions.labelTypes.end() == regions.labelTypes.find(start_addr)) {
             printAddress(std::cerr, start_addr, "Warning: Tracing code without label: 0x") << std::endl;
             // FIXME: generate label
+        } else if (reg->type() == SWITCH) {
+            /* avoid retracing switches */
+            return;
         }
 
         Type type = CODE;
@@ -169,12 +173,20 @@ struct Analyzer {
                               const uint8_t *data_ptr, uint32_t offset) {
         size_t count = 0;
         for (size_t off = 0; off + 4 <= size; off += 4, ++count) {
-            uint32_t addr = read_le<uint32_t>(data_ptr + off);
-            if (addr != 0) {
+            uint32_t address = read_le<uint32_t>(data_ptr + off);
+            Region *reg = regions.regionContaining(address);
+            if (reg == NULL) {
+                break;
+            }
+            if (address != 0) {
                 if (fixups.find(offset + off) == fixups.end()) {
                     break;
                 }
-                add_code_trace_address(addr, CASE);
+                if (reg->type() == DATA) {
+                    add_code_trace_address(address, DATA);
+                } else {
+                    add_code_trace_address(address, CASE);
+                }
             }
         }
         return count;
@@ -251,12 +263,54 @@ struct Analyzer {
         std::cerr << std::dec << guess_count << " guess(es) to investigate" << std::endl;
     }
 
+    void process_map(SymbolMap *map) {
+        for (std::map<uint32_t, SymbolMap::Properties>::iterator it = map->map.begin(); it != map->map.end(); ++it) {
+            const SymbolMap::Properties &item = it->second;
+            const Region *const reg = regions.regionContaining(item.address);
+
+            if (item.type == FUNCTION) {
+                add_code_trace_address(item.address, item.type);
+            } else if (item.type == SWITCH) {
+                const uint32_t address = item.address;
+                const ImageObject &obj = image.objectAt(item.address);
+                const uint8_t *data_ptr = obj.get_data_at(item.address);
+                const size_t size = std::min<size_t>(item.size, reg->end_address() - address);
+                // TODO What shall be done if map file item does not fit into containing region?
+                size_t count = 0;
+
+                for (size_t offset = 0; offset + sizeof(uint32_t) <= size; offset += sizeof(uint32_t), ++count) {
+                    uint32_t case_address = read_le<uint32_t>(data_ptr + offset);
+                    if (!regions.regionContaining(case_address)) {
+                        break;
+                    }
+                    add_code_trace_address(case_address, CASE);
+                }
+                if (count > 0) {
+                    regions.splitInsert((Region &)*reg, Region(address, sizeof(uint32_t) * count, SWITCH));
+                    regions.labelTypes[address] = SWITCH;
+                }
+            } else if (item.type == DATA) {
+                const size_t size = std::min<size_t>(item.size, reg->end_address() - item.address);
+                // TODO What shall be done if map file item does not fit into containing region?
+                regions.splitInsert((Region &)*reg, Region(item.address, size, DATA));
+            }
+
+            printAddress(std::cerr << "Map file " << map->getFileName() << " schedules ", item.address) << std::endl;
+        }
+        trace_code();
+    }
+
 public:
-    void run(LinearExecutable &lx) {
+    void run(LinearExecutable &lx, SymbolMap *map) {
         uint32_t eip = lx.entryPointAddress();
         add_code_trace_address(eip, FUNCTION);  // TODO: name it "_start"
         printAddress(std::cerr, eip, "Tracing code directly accessible from the entry point at 0x") << std::endl;
         trace_code();
+
+        if (map) {
+            std::cerr << "Loading map file..." << std::endl;
+            process_map(map);
+        }
 
         std::cerr << "Tracing text relocs for switches..." << std::endl;
         traceSwitches(lx);

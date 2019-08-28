@@ -98,10 +98,14 @@ public:
             type = RET;
         } else if (data0 == 0xcb) { /* lret */
             type = RET;
-        } else if (data0 == 0xff) { /* jmp near or call near indirect*/
+        } else if (data0 == 0xff) { /* jmp, call, push, inc, dec */
+            uint8_t reg_field = (data1 & 0x38) >> 3;
+            if (reg_field == 2 or reg_field == 3) {
+                type = CALL;
+            } else if (reg_field == 4 or reg_field == 5) {
+                type = JUMP;
+            }
             have_target = false;
-            /* whatever... */
-            type = (strstr(text, "jmp") != NULL) ? JUMP : CALL;
         }
 
         if (have_target and (type == COND_JUMP or type == JUMP or type == CALL)) {
