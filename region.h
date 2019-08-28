@@ -1,80 +1,63 @@
-#ifndef SRC_REGION_H_
-#define SRC_REGION_H_
+#ifndef LE_DISASM_REGION_H_
+#define LE_DISASM_REGION_H_
 
-#include "type.h"
+#include "le/image_object.h"
 
-struct Region {
-	enum DefaultBitness {
-		DEFAULT_BITNESS_32BIT,
-		DEFAULT_BITNESS_16BIT
-	};
+class Region {
+    const ImageObject *image_object_pointer_;
+    uint32_t address_;
+    uint32_t size_;
+    Type type_;
 
-	Region(uint32_t address_, uint32_t size_, Type type_, DefaultBitness bitness_ = DEFAULT_BITNESS_32BIT) {
-		address = address_;
-		size = size_;
-		type = type_;
-		bitness = bitness_;
-	}
+public:
+    Region(uint32_t address, uint32_t size, Type type, const ImageObject *image_object_pointer = NULL) {
+        address_ = address;
+        size_ = size;
+        type_ = type;
+        image_object_pointer_ = image_object_pointer;
+    }
 
-	Region(void) {
-		this->address = 0;
-		this->size = 0;
-		this->type = UNKNOWN;
-		this->bitness = DEFAULT_BITNESS_32BIT;
-	}
+    Region(void) {
+        address_ = 0;
+        size_ = 0;
+        type_ = UNKNOWN;
+        image_object_pointer_ = NULL;
+    }
 
-	Region(const Region &other) {
-		*this = other;
-	}
-
-	uint32_t get_address(void) const {
-		return this->address;
-	}
-
-	size_t get_end_address(void) const {
-		return (this->address + this->size);
-	}
-
-	Type get_type(void) const {
-		return this->type;
-	}
-
-	bool contains_address(uint32_t addr) const {
-		return (this->address <= addr and addr < this->address + this->size);
-	}
-
-	size_t get_size(void) const {
-		return this->size;
-	}
-
-	DefaultBitness get_default_bitness(void) const {
-		return this->bitness;
-	}
-
-	uint32_t address;
-	uint32_t size;
-	Type type;
-	DefaultBitness bitness;
+    Region(const Region &other) { *this = other; }
+    uint32_t address() const { return address_; }
+    size_t end_address() const { return (address_ + size_); }
+    Type type() const { return type_; }
+    bool contains_address(uint32_t address) const { return (address_ <= address and address < address_ + size_); }
+    size_t size() const { return size_; }
+    void size(size_t size) { size_ = size; }
+    Bitness bitness() const {
+        assert(image_object_pointer_);
+        return image_object_pointer_->bitness();
+    }
+    const ImageObject *image_object_pointer() { return image_object_pointer_; }
+    void image_object_pointer(const ImageObject *image_object_pointer) { image_object_pointer_ = image_object_pointer; }
 };
 
 std::ostream &operator<<(std::ostream &os, Type type) {
-	switch (type) {
-	case UNKNOWN:
-		return os << "unknown";
-	case CODE:
-		return os << "code";
-	case DATA:
-		return os << "data";
-	case SWITCH:
-		return os << "switch";
-	default:
-		return os << "(unknown " << type << ")";
-	}
+    switch (type) {
+        case UNKNOWN:
+            return os << "unknown";
+        case CODE:
+            return os << "code";
+        case DATA:
+            return os << "data";
+        case SWITCH:
+            return os << "switch";
+        default:
+            return os << "(unknown " << type << ")";
+    }
 }
 
-std::ostream &operator<<(std::ostream &os, const Region &reg) {	// %7s @ 0x%06x[%6d]
-	FlagsRestorer _(os);
-	return printAddress(os << std::setw(7) << reg.get_type(), reg.get_address(), " @ 0x") << "[" << std::setw(6) << std::setfill(' ') << std::dec << reg.get_size() << "]";
+std::ostream &operator<<(std::ostream &os, const Region &reg) { /* %7s @ 0x%06x[%6d] */
+    FlagsRestorer _(os);
+    return printAddress(os << std::setw(7) << reg.type(), reg.address(), " @ 0x")
+           << "[" << std::setw(6) << std::setfill(' ') << std::dec << reg.size() << "]";
 }
 
-#endif /* SRC_REGION_H_ */
+#endif /* LE_DISASM_REGION_H_ */
